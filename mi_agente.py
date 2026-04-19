@@ -35,7 +35,7 @@ fuera del mapa), simplemente se queda en su lugar.
 """
 
 from entorno import Agente
-
+import random
 
 class MiAgente(Agente):
     """
@@ -49,7 +49,6 @@ class MiAgente(Agente):
         super().__init__(nombre="Mi Agente")
         #este puntero hara que pueda retroceder
         self.visitados = set()
-        self.padres = {}
 
         # Puedes agregar atributos aquí si los necesitas.
         # Ejemplo:
@@ -57,60 +56,45 @@ class MiAgente(Agente):
         #   self.memoria = {}
 
     def al_iniciar(self):
-        """Se llama una vez al iniciar la simulación. Opcional."""
-        pass
+        self.visitados = set()
 
     def decidir(self, percepcion):
-        
-        """
-        Decide la siguiente acción del agente.
-        
-        Parámetros:
-            percepcion – diccionario con lo que el agente puede ver
-
-        Retorna:
-            'arriba', 'abajo', 'izquierda' o 'derecha'
-        """
-        # ╔══════════════════════════════════════╗
-        # ║   ESCRIBE TU LÓGICA AQUÍ             ║
-        # ╚══════════════════════════════════════╝
-
-        # Ejemplo básico (bórralo y escribe tu propia lógica):
-        #
-        # vert, horiz = percepcion['direccion_meta']
-        #
-        # if percepcion[vert] == 'libre' or percepcion[vert] == 'meta':
-        #     return vert
-        # if percepcion[horiz] == 'libre' or percepcion[horiz] == 'meta':
-        #     return horiz
-        #
-        # return 'abajo'
 
         posicion = percepcion['posicion']
         self.visitados.add(posicion)
 
-        movimientos = {
-            'arriba' : (-1,0),
-            'abajo' : (1,0),
-            'izquierda' : (0,-1),
-            'derecha' : (0,1)
-        }
-
+        # d es direccion
         for d in self.ACCIONES:
             if percepcion[d] == 'meta':
                 return d
+            
+        mejor_direccion = None
+        peor_utilidad = -999
+
+        vertical, horizontal = percepcion.get('direccion_meta', (None, None))
+
+        for d in self.ACCIONES:
+            estado = percepcion[d]
+            if estado == 'libre':
+                utilidad = 0
+                df, dc = self.DELTAS[d]
+                siguiente_posicion = (posicion[0] + df, posicion[1] + dc)
+                if d == vertical or d == horizontal:
+                    utilidad += 10
+                if siguiente_posicion in self.visitados:
+                    utilidad -= 5
+                if siguiente_posicion not in self.visitados:
+                    utilidad += 2
+
+                utilidad += random.uniform(0, 0.5)
+
+                if utilidad > peor_utilidad:
+                    peor_utilidad = utilidad
+                    mejor_direccion = d
+        if mejor_direccion:
+            return mejor_direccion
+        
         for d in self.ACCIONES:
             if percepcion[d] == 'libre':
-                nueva_posicion = (posicion[0] + movimientos[d][0],
-                                  posicion[1] + movimientos[d][1])
-                
-                if nueva_posicion not in self.visitados:
-                    self.padres[nueva_posicion] = posicion
-                    return d
-
-        if posicion in self.padres:
-            padre = self.padres[posicion]
-            for d, movimiento in movimientos.items():
-                if (posicion[0] + movimiento[0], posicion[1] + movimiento[1]) == padre :
-                    return d
-        return 'abajo'
+                return d
+        return random.choice(self.ACCIONES)
